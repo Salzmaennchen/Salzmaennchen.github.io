@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Work Radios</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #111;
+      color: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .player {
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 16px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-top: 0;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .radio-select {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .radio-button {
+      border: none;
+      border-radius: 999px;
+      padding: 6px 12px;
+      background: #333;
+      color: #f5f5f5;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .radio-button.active {
+      background: #f5f5f5;
+      color: #111;
+      font-weight: 600;
+    }
+    .now-playing-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #aaa;
+      margin-bottom: 4px;
+    }
+    .now-playing {
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+    .radio-name {
+      font-size: 0.85rem;
+      color: #ccc;
+      margin-bottom: 16px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    button.control {
+      border: none;
+      border-radius: 999px;
+      padding: 8px 14px;
+      background: #333;
+      color: #f5f5f5;
+      cursor: pointer;
+      font-size: 0.9rem;
+      min-width: 70px;
+    }
+    button.control.main {
+      padding: 10px 20px;
+      font-weight: 600;
+    }
+    button.control:active {
+      transform: scale(0.97);
+    }
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+    .track-count {
+      font-size: 0.75rem;
+      color: #888;
+      text-align: right;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="player">
+    <h1>My Work Radios</h1>
+
+    <div class="radio-select" id="radioButtons">
+      <!-- Filled by JS -->
+    </div>
+
+    <div class="now-playing-label">Now Playing</div>
+    <div class="now-playing" id="nowPlaying">–</div>
+    <div class="radio-name" id="radioName">Choose a radio…</div>
+
+    <audio id="audio" controls></audio>
+    <div class="track-count" id="trackCount"></div>
+
+    <div class="controls">
+      <button class="control" id="prevBtn">⏮︎ Prev</button>
+      <button class="control main" id="playPauseBtn">▶︎ Play</button>
+      <button class="control" id="nextBtn">⏭︎ Next</button>
+    </div>
+  </div>
+
+  <script>
+    // --- CONFIG: define your "radios" and tracks here ---
+    const radios = {
+      chill: {
+        label: "Chill",
+        tracks: [
+          { title: "Chill Track 1", file: "music/chill/track1.mp3" },
+          { title: "Chill Track 2", file: "music/chill/track2.mp3" }
+        ]
+      },
+      focus: {
+        label: "Focus",
+        tracks: [
+          { title: "Focus Track 1", file: "music/focus/track1.mp3" },
+          { title: "Focus Track 2", file: "music/focus/track2.mp3" }
+        ]
+      },
+      upbeat: {
+        label: "Upbeat",
+        tracks: [
+          { title: "Upbeat Track 1", file: "music/upbeat/track1.mp3" },
+          { title: "Upbeat Track 2", file: "music/upbeat/track2.mp3" }
+        ]
+      }
+    };
+
+    // --- Player logic ---
+    const audio = document.getElementById("audio");
+    const nowPlaying = document.getElementById("nowPlaying");
+    const radioName = document.getElementById("radioName");
+    const trackCount = document.getElementById("trackCount");
+    const playPauseBtn = document.getElementById("playPauseBtn");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const radioButtonsContainer = document.getElementById("radioButtons");
+
+    let currentRadioKey = null;
+    let currentIndex = 0;
+
+    // Create radio buttons
+    Object.entries(radios).forEach(([key, radio]) => {
+      const btn = document.createElement("button");
+      btn.textContent = radio.label;
+      btn.className = "radio-button";
+      btn.addEventListener("click", () => selectRadio(key));
+      btn.dataset.radioKey = key;
+      radioButtonsContainer.appendChild(btn);
+    });
+
+    function updateRadioButtons() {
+      Array.from(radioButtonsContainer.children).forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.radioKey === currentRadioKey);
+      });
+    }
+
+    function selectRadio(key) {
+      currentRadioKey = key;
+      currentIndex = 0;
+      const radio = radios[key];
+
+      radioName.textContent = `${radio.label} radio`;
+      updateRadioButtons();
+      loadCurrentTrack(true);
+    }
+
+    function loadCurrentTrack(autoplay = false) {
+      if (!currentRadioKey) return;
+
+      const radio = radios[currentRadioKey];
+      if (!radio.tracks.length) return;
+
+      const track = radio.tracks[currentIndex];
+      audio.src = track.file;
+      nowPlaying.textContent = track.title;
+      trackCount.textContent = `Track ${currentIndex + 1} of ${radio.tracks.length}`;
+
+      if (autoplay) {
+        audio.play().catch(() => {
+          // Safari may block auto-play until user clicks play
+        });
+        updatePlayPauseButton();
+      }
+    }
+
+    function nextTrack() {
+      if (!currentRadioKey) return;
+      const radio = radios[currentRadioKey];
+      currentIndex = (currentIndex + 1) % radio.tracks.length;
+      loadCurrentTrack(true);
+    }
+
+    function prevTrack() {
+      if (!currentRadioKey) return;
+      const radio = radios[currentRadioKey];
+      currentIndex = (currentIndex - 1 + radio.tracks.length) % radio.tracks.length;
+      loadCurrentTrack(true);
+    }
+
+    function togglePlayPause() {
+      if (!audio.src) {
+        // If nothing loaded yet, pick first radio automatically
+        const firstKey = Object.keys(radios)[0];
+        if (firstKey) {
+          selectRadio(firstKey);
+        }
+        return;
+      }
+      if (audio.paused) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+      updatePlayPauseButton();
+    }
+
+    function updatePlayPauseButton() {
+      playPauseBtn.textContent = audio.paused ? "▶︎ Play" : "⏸︎ Pause";
+    }
+
+    // Event listeners
+    playPauseBtn.addEventListener("click", togglePlayPause);
+    nextBtn.addEventListener("click", nextTrack);
+    prevBtn.addEventListener("click", prevTrack);
+
+    audio.addEventListener("play", updatePlayPauseButton);
+    audio.addEventListener("pause", updatePlayPauseButton);
+    audio.addEventListener("ended", nextTrack); // Auto-skip to next when song ends
+  </script>
+</body>
+</html>
